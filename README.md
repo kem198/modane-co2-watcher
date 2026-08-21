@@ -72,7 +72,7 @@ Serial console → No
 Serial port hardware → Yes
 ```
 
-設定後、再起動します。
+設定後、Raspberry Pi を再起動します。
 
 ```bash
 sudo reboot
@@ -154,138 +154,73 @@ export WTTR_LOCALE="Fukuoka"
 ./ModaneCO2Watcher.out
 ```
 
-## (任意) systemd による自動起動
+## (任意) ワンコマンドで実行できるようにする
 
-Raspberry Pi 起動時にプログラムを自動起動し、異常終了時に自動再起動する設定を行います。
+`.bashrc` を利用してコマンドのエイリアスを作成し、Raspberry Pi の再起動後にアプリケーションを実行できるようにします。
 
-### 1. systemd サービスファイルの作成
+```sh
+cat >> "$HOME/.bashrc" <<'EOF'
 
-一時的に以下の環境変数を設定します。
+# modane-co2-watcher
+alias mcw='cd "$HOME/modane-co2-watcher" && \
+export WTTR_LOCALE="Fukuoka" && \
+export PATH="$HOME/modane-co2-watcher-venv/bin:$PATH" && \
+./ModaneCO2Watcher.out'
+EOF
+```
 
-- `MODANE_USER`: 実行ユーザー。通常は変更不要です。
-- `WTTR_LOCALE`: 天気情報を表示する地域。必要に応じて変更してください。
+`.bashrc` へ追記された内容を確認します。
+
+```sh
+cat ~/.bashrc
+```
+
+Raspberry Pi を再起動します。
 
 ```bash
-# Raspberry Pi にログインしているユーザー名を使用します。
-export MODANE_USER="$USER"
-
-# 天気情報を表示する地域を設定します。
-# 必要に応じて変更してください。
-export WTTR_LOCALE="Fukuoka"
+sudo reboot
 ```
 
-以下を実行して systemd のサービスファイルを作成します。
+エイリアスを実行し、アプリケーションが起動できることを確認します。
 
-```shell
-sudo tee /etc/systemd/system/modane-co2-watcher.service > /dev/null <<EOF
-[Unit]
-Description=Modane CO2 Watcher
-After=network-online.target
-Wants=network-online.target
+## (任意) 推奨フォントで表示する
 
-[Service]
-Type=simple
-User=$MODANE_USER
-WorkingDirectory=/home/$MODANE_USER/modane-co2-watcher
-Environment="WTTR_LOCALE=$WTTR_LOCALE"
-Environment="PATH=/home/$MODANE_USER/modane-co2-watcher-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-ExecStart=/home/$MODANE_USER/modane-co2-watcher/ModaneCO2Watcher.out
-Restart=on-failure
-RestartSec=5
+推奨のフォントである [HackGen](https://github.com/yuru7/HackGen) を 表示に利用できるようにします。
 
-[Install]
-WantedBy=multi-user.target
-EOF
-```
+### 1. フォントファイルの設定
 
-サービスファイルが作成されたことを確認します。
-
-```shell
-cat /etc/systemd/system/modane-co2-watcher.service
-```
-
-### systemd の有効化
-
-サービスファイルを systemd に読み込ませます。
-
-````sh
-sudo systemctl daemon-reload
-```
-
-Raspberry Pi 起動時の自動起動を有効にします。
+フォントファイルを取得・展開し、フォントとして利用できるようにします。
 
 ```sh
-sudo systemctl enable modane-co2-watcher.service
-````
+mkdir -p "$HOME/.local/share/fonts"
 
-サービスを起動します。
+cd /tmp
+wget -q https://github.com/yuru7/HackGen/releases/download/v2.10.0/HackGen_v2.10.0.zip
+unzip -o HackGen_v2.10.0.zip -d HackGen_v2.10.0
 
-```sh
-sudo systemctl start modane-co2-watcher.service
+find HackGen_v2.10.0 -name "*.ttf" -exec cp {} "$HOME/.local/share/fonts/" \;
+fc-cache -f
 ```
 
-サービスの状態を確認します。
+フォントファイルが登録されていることを確認します。
 
 ```sh
-systemctl status modane-co2-watcher.service
+fc-list | grep -i "HackGen"
 ```
 
 ```sh
 # 期待値
-● modane-co2-watcher.service - Modane CO2 Watcher
-     Loaded: loaded (...; enabled; ...) # enabled になっていること
-     Active: active (running) ... # running になっていること
-   Main PID: ...
+/home/ユーザ名/.local/share/fonts/HackGen-Regular.ttf: HackGen:style=Regular
+/home/ユーザ名/.local/share/fonts/HackGen-Bold.ttf: HackGen:style=Bold
+/home/ユーザ名/.local/share/fonts/HackGen35Console-Regular.ttf: HackGen35 Console:style=Regular
+/home/ユーザ名/.local/share/fonts/HackGenConsole-Regular.ttf: HackGen Console:style=Regular
+/home/ユーザ名/.local/share/fonts/HackGenConsole-Bold.ttf: HackGen Console:style=Bold
+/home/ユーザ名/.local/share/fonts/HackGen35-Regular.ttf: HackGen35:style=Regular
+/home/ユーザ名/.local/share/fonts/HackGen35-Bold.ttf: HackGen35:style=Bold
+/home/ユーザ名/.local/share/fonts/HackGen35Console-Bold.ttf: HackGen35 Console:style=Bold
 ```
 
-### 2. アプリケーションの自動起動確認
-
-Raspberry Pi を再起動します。
-
-```sh
-sudo reboot
-```
-
-自動起動していることを確認します。
-
-```sh
-systemctl status modane-co2-watcher.service
-```
-
-```sh
-# 期待値
-● modane-co2-watcher.service - Modane CO2 Watcher
-     Loaded: loaded (...; enabled; ...) # enabled になっていること
-     Active: active (running) ... # running になっていること
-   Main PID: ...
-```
-
-## (任意) LXDE によるターミナルの自動起動・描画設定
-
-上記 systemd で起動しているアプリケーションをターミナルへ表示し、Raspberry Pi 起動時にそのまま CO2 濃度などの表示が行われるようにします。
-
-### 1. LXDE の設定
-
-LXDE のディレクトリへ LXTerminal の自動起動設定用スクリプトを作成します。
-
-```sh
-mkdir -p "$HOME/.config/lxsession/LXDE-pi"
-cat > "$HOME/.config/lxsession/LXDE-pi/autostart" <<'EOF'
-@lxterminal --maximize --command="bash -c 'journalctl -u modane-co2-watcher.service -f'"
-EOF
-```
-
-### 2. LXTerminal 自動起動の確認
-
-Raspberry Pi を再起動します。
-
-```sh
-sudo reboot
-```
-
-LXTerminal が自動起動し、全画面でアプリケーションの実行が行われたことを確認します。
-
-セットアップ手順は以上です。
+LXTerminal の Edit > Preference から HackGen Console Regular を設定します。
 
 ## 参考文献
 
