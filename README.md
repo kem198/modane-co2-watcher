@@ -31,7 +31,7 @@ Raspberry Pi で動作する二酸化炭素濃度計アプリケーションで�
 - Raspberry Pi OS 64-bit
 - Python 3.13
 - LXTerminal
-- 等幅フォント ([HackGenNerd Console](https://github.com/yuru7/HackGen))
+- 等幅フォント ([HackGen Console](https://github.com/yuru7/HackGen))
 
 ## セットアップ ～ 初回起動
 
