@@ -139,7 +139,7 @@ python3 -c "import mh_z19; print(mh_z19.read_all(serial_console_untouched=True))
 
 ### 2. プログラムを起動
 
-(任意) 天気表示の地域に設定します。
+(任意) 天気表示の地域を設定します。
 
 ```bash
 # 例: 福岡の場合
