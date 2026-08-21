@@ -97,7 +97,7 @@ def log_conce(got_datetime, co2_conce, dir_path = './logs/', filename = 'co2_con
 now = dt.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # CO2 濃度の値を取得
-co2_conce = mh_z19.read_all()["co2"]
+co2_conce = mh_z19.read_all(serial_console_untouched=True)["co2"]
 # co2_conce = 1
 
 # 取得した値の検証と格納
