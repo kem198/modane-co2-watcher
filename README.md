@@ -1,6 +1,6 @@
 # modane-co2-watcher
 
-![CO2濃度計の写真](images/co2_watcher.jpg)
+![CO2濃度計の写真](images/co2-watcher-top.jpg)
 
 Raspberry Pi で動作する二酸化炭素濃度計アプリケーションです。  
 2022 年当時、C 言語と Linux の学習の過程で制作しました。
@@ -153,6 +153,10 @@ export WTTR_LOCALE="Fukuoka"
 ```shell
 ./ModaneCO2Watcher.out
 ```
+
+下図のようにアプリケーションが起動できたことを確認します。
+
+![alt text](images/co2-watcher-result.png)
 
 ## (任意) ワンコマンドで実行できるようにする
 
