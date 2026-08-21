@@ -97,14 +97,15 @@ def log_conce(got_datetime, co2_conce, dir_path = './logs/', filename = 'co2_con
 now = dt.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # CO2 濃度の値を取得
-co2_conce = mh_z19.read_all()["co2"]
+co2_conce = mh_z19.read_all(serial_console_untouched=True)["co2"]
 # co2_conce = 1
 
 # 取得した値の検証と格納
-if verify_co2_conce(co2_conce) == 1:
+result = verify_co2_conce(co2_conce)
+if result == 1:
     # 5桁以上の場合（異常値）は -1 に変更
     verified_co2_conce = -1
-if verify_co2_conce(co2_conce) == 2:
+elif result == 2:
     # 負の数値の場合（異常値）は -2 に変更
     verified_co2_conce = -2
 else:
