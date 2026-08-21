@@ -41,7 +41,7 @@ Raspberry Pi の電源を入れる前に、MH-Z19 を本体の UART ポートへ
 
 接続例については [CO2 濃度の測定](#co2-濃度の測定) に記載している参考資料をご確認ください。
 
-完了後、Raspberry Pi 4 に電源を接続して起動します。
+完了後、Raspberry Pi に電源を接続して起動します。
 
 ### 2. 必要なパッケージをインストール
 
@@ -153,6 +153,139 @@ export WTTR_LOCALE="Fukuoka"
 ```shell
 ./ModaneCO2Watcher.out
 ```
+
+## (任意) systemd による自動起動
+
+Raspberry Pi 起動時にプログラムを自動起動し、異常終了時に自動再起動する設定を行います。
+
+### 1. systemd サービスファイルの作成
+
+一時的に以下の環境変数を設定します。
+
+- `MODANE_USER`: 実行ユーザー。通常は変更不要です。
+- `WTTR_LOCALE`: 天気情報を表示する地域。必要に応じて変更してください。
+
+```bash
+# Raspberry Pi にログインしているユーザー名を使用します。
+export MODANE_USER="$USER"
+
+# 天気情報を表示する地域を設定します。
+# 必要に応じて変更してください。
+export WTTR_LOCALE="Fukuoka"
+```
+
+以下を実行して systemd のサービスファイルを作成します。
+
+```shell
+sudo tee /etc/systemd/system/modane-co2-watcher.service > /dev/null <<EOF
+[Unit]
+Description=Modane CO2 Watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$MODANE_USER
+WorkingDirectory=/home/$MODANE_USER/modane-co2-watcher
+Environment="WTTR_LOCALE=$WTTR_LOCALE"
+Environment="PATH=/home/$MODANE_USER/modane-co2-watcher-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/home/$MODANE_USER/modane-co2-watcher/ModaneCO2Watcher.out
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+サービスファイルが作成されたことを確認します。
+
+```shell
+cat /etc/systemd/system/modane-co2-watcher.service
+```
+
+### systemd の有効化
+
+サービスファイルを systemd に読み込ませます。
+
+````sh
+sudo systemctl daemon-reload
+```
+
+Raspberry Pi 起動時の自動起動を有効にします。
+
+```sh
+sudo systemctl enable modane-co2-watcher.service
+````
+
+サービスを起動します。
+
+```sh
+sudo systemctl start modane-co2-watcher.service
+```
+
+サービスの状態を確認します。
+
+```sh
+systemctl status modane-co2-watcher.service
+```
+
+```sh
+# 期待値
+● modane-co2-watcher.service - Modane CO2 Watcher
+     Loaded: loaded (...; enabled; ...) # enabled になっていること
+     Active: active (running) ... # running になっていること
+   Main PID: ...
+```
+
+### 2. アプリケーションの自動起動確認
+
+Raspberry Pi を再起動します。
+
+```sh
+sudo reboot
+```
+
+自動起動していることを確認します。
+
+```sh
+systemctl status modane-co2-watcher.service
+```
+
+```sh
+# 期待値
+● modane-co2-watcher.service - Modane CO2 Watcher
+     Loaded: loaded (...; enabled; ...) # enabled になっていること
+     Active: active (running) ... # running になっていること
+   Main PID: ...
+```
+
+## (任意) LXDE によるターミナルの自動起動・描画設定
+
+上記 systemd で起動しているアプリケーションをターミナルへ表示し、Raspberry Pi 起動時にそのまま CO2 濃度などの表示が行われるようにします。
+
+### 1. LXDE の設定
+
+LXDE のディレクトリへ LXTerminal の自動起動設定用スクリプトを作成します。
+
+```sh
+mkdir -p "$HOME/.config/lxsession/LXDE-pi"
+cat > "$HOME/.config/lxsession/LXDE-pi/autostart" <<'EOF'
+@lxterminal --maximize --command="bash -c 'journalctl -u modane-co2-watcher.service -f'"
+EOF
+```
+
+### 2. LXTerminal 自動起動の確認
+
+Raspberry Pi を再起動します。
+
+```sh
+sudo reboot
+```
+
+LXTerminal が自動起動し、全画面でアプリケーションの実行が行われたことを確認します。
+
+セットアップ手順は以上です。
 
 ## 参考文献
 
